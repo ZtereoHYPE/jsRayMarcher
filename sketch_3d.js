@@ -27,25 +27,25 @@ let generatorArray = [
 			y: 100,
 			x: 0
 		},
-		colour: [255, 255, 255]
+		colour: [255, 200, 127]
 	},
 ]
 let sphereArray = [];
 function generateSpheres() {
-	for (circ of generatorArray) {
-		if (circ.type === "sphere") {
+	for (object of generatorArray) {
+		if (object.type === "sphere") {
 			sphereArray.push({
-				vect: createVector(circ.x, circ.y, circ.z),
-				r: circ.r,
-				colour: circ.colour,
-				type: circ.type
+				vect: createVector(object.x, object.y, object.z),
+				r: object.r,
+				colour: object.colour,
+				type: object.type
 			})
-		} else if (circ.type === "plane") {
+		} else if (object.type === "plane") {
 			sphereArray.push({
-				normal: createVector(circ.normal.x, circ.normal.y, circ.normal.z).normalize(),
-				point: createVector(circ.point.x, circ.point.y, circ.point.z),
-				colour: circ.colour,
-				type: circ.type
+				normal: createVector(object.normal.x, object.normal.y, object.normal.z).normalize(),
+				point: createVector(object.point.x, object.point.y, object.point.z),
+				colour: object.colour,
+				type: object.type
 			})
 		}
 	}
@@ -58,7 +58,7 @@ let playerLocation;
 let playerRotationY = 0;
 let playerRotationX = 0;
 let lightVector;
-let maxCircles;
+
 function setup() {
 	playerLocation = createVector(0, 0, -100);
 	generateSpheres()
@@ -84,28 +84,12 @@ function draw() {
 			let currentRayLocation = playerLocation.copy()
 			let chosenSphere;
 
-			maxCircles = 0;
-			while (smallestSphereDistance > 0.1 && currentRayLocation.dist(playerLocation) < 500) {
-				for (sphere of sphereArray) {
-					if (sphere.type === "sphere") {
-						let distance = Math.abs(currentRayLocation.dist(sphere.vect) - sphere.r)
-						if (distance < smallestSphereDistance) {
-							smallestSphereDistance = distance;
-							chosenSphere = sphere;
-						};
-					}
-					else if (sphere.type === "plane") {
-						let distance = Math.abs(p5.Vector.dot(sphere.normal, p5.Vector.sub(currentRayLocation, sphere.point)));
-						if (distance < smallestSphereDistance) {
-							smallestSphereDistance = distance;
-							chosenSphere = sphere;
-						};
-					}
-				}
+			let maxCircles = 0;
+			while (smallestSphereDistance > 0.1 && currentRayLocation.dist(playerLocation) < 500 && maxCircles < 162) {
+				let surfaceData = getSurfaceDistance(currentRayLocation)
+				chosenSphere = surfaceData.object
+				smallestSphereDistance = surfaceData.distance
 
-				// let surfaceData = getSurfaceDistance(currentRayLocation)
-				// chosenSphere = surfaceData[1]
-				
 				let correctVector = createVector(u, v, 1).normalize();
 				let angle = radians(playerRotationY);
 
@@ -126,8 +110,7 @@ function draw() {
 				// ]
 
 				let matriceVector = multiplyMatrices(rayVectorMatrix, YtransformationMatrix);
-				
-				// matriceVector = multiplyMatrices(matriceVector, XtranformationMatrix);
+
 				currentRayLocation.add(createVector(matriceVector[0][0] * smallestSphereDistance, matriceVector[0][1] * smallestSphereDistance, matriceVector[0][2] * smallestSphereDistance));
 				maxCircles++
 			}
@@ -139,8 +122,8 @@ function draw() {
 				let r = chosenSphere.colour[0];
 				let g = chosenSphere.colour[1];
 				let b = chosenSphere.colour[2];
-				// fill((normal.x*0.5 +0.5) * 255, (normal.y*0.5 +0.5) * 255, (normal.z*0.5 +0.5) * 255)
-				fill(max(0.2 * r, brightness * r), max(0.2 * g, brightness * g), max(0.2 * b, brightness * b))
+				fill((normal.x*0.5 +0.5) * 255, (normal.y*0.5 +0.5) * 255, (normal.z*0.5 +0.5) * 255)
+				// fill(max(0.2 * r, brightness * r), max(0.2 * g, brightness * g), max(0.2 * b, brightness * b))
 				square(x, y, fragmentSize);
 			}
 		}
@@ -177,12 +160,10 @@ function movePlayer() {
 
 	if (keyIsDown(LEFT_ARROW)) {
 		playerRotationY -= 1;
-		console.log("angle " + playerRotationY);
 	}
 
 	if (keyIsDown(RIGHT_ARROW)) {
 		playerRotationY += 1;
-		console.log("angle " + playerRotationY);
 	}
 
 	// if (keyIsDown(UP_ARROW)) {
@@ -197,60 +178,51 @@ function movePlayer() {
 // Samples the surface distance at 4 points: pos, pos with a small x offset, pos with a small y offset and pos with a small z offset and uses the distance differences to estimate the surface normal.
 function getSurfaceNormal(pos) {
 	const epsilon = 0.0000000001;
-	const centerDistance = getSurfaceDistance(pos)[0];
-	const xDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(epsilon, 0, 0)))[0];
-	const yDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, epsilon, 0)))[0];
-	const zDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, 0, epsilon)))[0];
+	const centerDistance = getSurfaceDistance(pos).distance;
+	const xDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(epsilon, 0, 0))).distance;
+	const yDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, epsilon, 0))).distance;
+	const zDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, 0, epsilon))).distance;
 	let normal = createVector(xDistance - centerDistance, yDistance - centerDistance, zDistance - centerDistance);
 	normal.normalize();
-
 	return normal;
 }
 
 function getSurfaceDistance(pos) {
-	let smallestSphereDistance = Infinity;
-	let closestSphere;
+	let smallestObjectDistance = Infinity;
+	let closestObject = null;
 
-	for (sphere of sphereArray) {
-		if (sphere.type === "sphere") {
-			let distance = pos.dist(sphere.vect) - sphere.r
-			if (distance < smallestSphereDistance) {
-				smallestSphereDistance = distance;
-				closestSphere = sphere;
+	for (object of sphereArray) {
+		if (object.type === "sphere") {
+			let distance = pos.dist(object.vect) - object.r
+			if (distance < smallestObjectDistance) {
+				smallestObjectDistance = distance;
+				closestObject = object;
 			};
 		}
-		else if (sphere.type === "plane") {
-			let distance = Math.abs(p5.Vector.dot(sphere.normal, p5.Vector.sub(pos, sphere.point)));
-			if (distance < smallestSphereDistance) {
-				smallestSphereDistance = distance;
-				chosenSphere = sphere;
+		else if (object.type === "plane") {
+			let distance = Math.abs(p5.Vector.dot(object.normal, p5.Vector.sub(pos, object.point)));
+			if (distance < smallestObjectDistance) {
+				smallestObjectDistance = distance;
+				closestObject = object;
 			};
 		}
 	}
-	return [smallestSphereDistance, closestSphere];
+	return {
+		distance: smallestObjectDistance,
+		object: closestObject
+	}
 }
 
+// This is hardcoded for 1x3 and 3x3 matrix multiplication to be faster.
 const multiplyMatrices = (a, b) => {
-	// if (!Array.isArray(a) || !Array.isArray(b) || !a.length || !b.length) {
-	// 	throw new Error('arguments should be in 2-dimensional array format');
-	// }
-	let x = a.length,
-		z = a[0].length,
-		y = b[0].length;
-	// if (b.length !== z) {
-	// 	// XxZ & ZxY => XxY
-	// 	throw new Error('number of columns in the first matrix should be the same as the number of rows in the second');
-	// }
-	let productRow = Array.apply(null, new Array(y)).map(Number.prototype.valueOf, 0);
-	let product = new Array(x);
-	for (let p = 0; p < x; p++) {
+	let productRow = Array.apply(null, new Array(3)).map(Number.prototype.valueOf, 0);
+	let product = new Array(1);
+	for (let p = 0; p < 1; p++) {
 		product[p] = productRow.slice();
 	}
-	for (let i = 0; i < x; i++) {
-		for (let j = 0; j < y; j++) {
-			for (let k = 0; k < z; k++) {
-				product[i][j] += a[i][k] * b[k][j];
-			}
+	for (let j = 0; j < 3; j++) {
+		for (let k = 0; k < 3; k++) {
+			product[0][j] += a[0][k] * b[k][j];
 		}
 	}
 	return product;
