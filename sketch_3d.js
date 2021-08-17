@@ -54,7 +54,7 @@ function generateSpheres() {
 
 let canvas;
 let vectorArray = [];
-let fragmentSize = 6;
+let fragmentSize = 3;
 let playerLocation;
 let playerRotationY = 0;
 let playerRotationX = 0;
@@ -75,12 +75,6 @@ function draw() {
 	background(10);
 	fill("white")
 	noStroke();
-	let angle = radians(playerRotationY);
-	let yRotationMatrix = [
-		[Math.cos(angle), 0, -Math.sin(angle)],
-		[0, 1, 0],
-		[Math.sin(angle), 0, Math.cos(angle)]
-	]
 	// Run this for each fragment
 	for (let y = 1; y <= canvas.height; y += fragmentSize) {
 		for (let x = 1; x <= canvas.width; x += fragmentSize) {
@@ -92,15 +86,21 @@ function draw() {
 			let currentRayLocation = playerLocation.copy()
 			let maxCircles = 0;
 
+			let angle = radians(playerRotationY);
 			let uvVector = createVector(u, v, 1).normalize();
 			let rayVectorMatrix = [
 				[uvVector.x, uvVector.y, uvVector.z]
+			]
+			let yRotationMatrix = [
+				[Math.cos(angle), 0, -Math.sin(angle)],
+				[0, 1, 0],
+				[Math.sin(angle), 0, Math.cos(angle)]
 			]
 			let matriceVector = multiplyMatrices(rayVectorMatrix, yRotationMatrix);
 			let correctVector = createVector(matriceVector[0][0], matriceVector[0][1], matriceVector[0][2]);
 
 			// Loop until we find the closest object, we get too far, or it's taking too long
-			while (closestObjectDistance > 0.1 && currentRayLocation.dist(playerLocation) < 2000) {
+			while (closestObjectDistance > 0.1 && currentRayLocation.dist(playerLocation) < 500 && maxCircles < 150) {
 				// Get the closest object distance
 				closestObjectDistance = getSurfaceDistance(currentRayLocation).distance;
 
@@ -131,39 +131,19 @@ function draw() {
 }
 
 function movePlayer() {
-	// forward
-	if (keyIsDown(87)) {
-		let angle = radians(playerRotationY);
-		let yRotationMatrix = [
-			[Math.cos(angle), 0, -Math.sin(angle)],
-			[0, 1, 0],
-			[Math.sin(angle), 0, Math.cos(angle)]
-		]
-		let rayVectorMatrix = [
-			[playerLocation.x, playerLocation.y, playerLocation.z]
-		]
-		let matriceVector = multiplyMatrices(rayVectorMatrix, yRotationMatrix);
-		playerLocation.add(createVector(matriceVector[0][0], matriceVector[0][1], matriceVector[0][2]).normalize().mult(-2))
-	}
-	// bakcward
-	if (keyIsDown(83)) {
-		let angle = radians(playerRotationY);
-		let yRotationMatrix = [
-			[Math.cos(angle), 0, -Math.sin(angle)],
-			[0, 1, 0],
-			[Math.sin(angle), 0, Math.cos(angle)]
-		]
-		let rayVectorMatrix = [
-			[playerLocation.x, playerLocation.y, playerLocation.z]
-		]
-		let matriceVector = multiplyMatrices(rayVectorMatrix, yRotationMatrix);
-		playerLocation.add(createVector(matriceVector[0][0], matriceVector[0][1], matriceVector[0][2]).normalize().mult(2))
-	}
 	// up
+	if (keyIsDown(87)) {
+		playerLocation.z += 2
+	}
+	// down
+	if (keyIsDown(83)) {
+		playerLocation.z -= 2
+	}
+
 	if (keyIsDown(69)) {
 		playerLocation.y -= 2
 	}
-	// down
+
 	if (keyIsDown(81)) {
 		playerLocation.y += 2
 	}
