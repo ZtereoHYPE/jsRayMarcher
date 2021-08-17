@@ -1,3 +1,4 @@
+// TODO: rewrite this bs based on reperak's work
 let generatorArray = [
 	{
 		type: "sphere",
@@ -53,7 +54,7 @@ function generateSpheres() {
 
 let canvas;
 let vectorArray = [];
-let fragmentSize = 6;
+let fragmentSize = 3;
 let playerLocation;
 let playerRotationY = 0;
 let playerRotationX = 0;
@@ -62,11 +63,9 @@ let lightVector;
 function setup() {
 	playerLocation = createVector(0, 0, -100);
 	generateSpheres()
-	frameRate(10);
+	frameRate(60);
 	canvas = createCanvas(400, 400);
 	background(10);
-	lightVector = createVector(10 * Math.cos(frameCount), -10, -10)
-	lightVector.normalize()
 }
 
 function draw() {
@@ -75,55 +74,54 @@ function draw() {
 	movePlayer()
 	background(10);
 	fill("white")
+	noStroke();
+	// Run this for each fragment
 	for (let y = 1; y <= canvas.height; y += fragmentSize) {
 		for (let x = 1; x <= canvas.width; x += fragmentSize) {
+			// Create the UV coordinates for the fragment
 			let u = x / (canvas.width / 2) - 1;
 			let v = y / (canvas.height / 2) - 1;
 
-			let smallestSphereDistance = Infinity;
+			let closestObjectDistance = Infinity;
 			let currentRayLocation = playerLocation.copy()
-			let chosenSphere;
-
 			let maxCircles = 0;
-			while (smallestSphereDistance > 0.1 && currentRayLocation.dist(playerLocation) < 500 && maxCircles < 162) {
-				let surfaceData = getSurfaceDistance(currentRayLocation)
-				chosenSphere = surfaceData.object
-				smallestSphereDistance = surfaceData.distance
 
-				let correctVector = createVector(u, v, 1).normalize();
-				let angle = radians(playerRotationY);
+			let angle = radians(playerRotationY);
+			let uvVector = createVector(u, v, 1).normalize();
+			let rayVectorMatrix = [
+				[uvVector.x, uvVector.y, uvVector.z]
+			]
+			let yRotationMatrix = [
+				[Math.cos(angle), 0, -Math.sin(angle)],
+				[0, 1, 0],
+				[Math.sin(angle), 0, Math.cos(angle)]
+			]
+			let matriceVector = multiplyMatrices(rayVectorMatrix, yRotationMatrix);
+			let correctVector = createVector(matriceVector[0][0], matriceVector[0][1], matriceVector[0][2]);
 
-				let rayVectorMatrix = [
-					[correctVector.x, correctVector.y, correctVector.z]
-				]
-				let YtransformationMatrix = [
-					[Math.cos(angle), 0, -Math.sin(angle)],
-					[0, 1, 0],
-					[Math.sin(angle), 0, Math.cos(angle)]
-				]
+			// Loop until we find the closest object, we get too far, or it's taking too long
+			while (closestObjectDistance > 0.1 && currentRayLocation.dist(playerLocation) < 500 && maxCircles < 150) {
+				// Get the closest object distance
+				closestObjectDistance = getSurfaceDistance(currentRayLocation).distance;
 
-				// console.log(YtransformationMatrix)
-				// let XtranformationMatrix = [
-				// 	[1, 0, 0],
-				// 	[0, Math.cos(playerRotationX), -Math.sin(playerRotationX)],
-				// 	[0, Math.sin(playerRotationX), Math.cos(playerRotationX)]
-				// ]
-
-				let matriceVector = multiplyMatrices(rayVectorMatrix, YtransformationMatrix);
-
-				currentRayLocation.add(createVector(matriceVector[0][0] * smallestSphereDistance, matriceVector[0][1] * smallestSphereDistance, matriceVector[0][2] * smallestSphereDistance));
+				// Advance the ray of the rotated ray
+				currentRayLocation.x += correctVector.x * closestObjectDistance;
+				currentRayLocation.y += correctVector.y * closestObjectDistance;
+				currentRayLocation.z += correctVector.z * closestObjectDistance;
 				maxCircles++
 			}
 
-			if (smallestSphereDistance < 0.1) {
+			if (closestObjectDistance < 0.1) {
+				let closestObject = getSurfaceDistance(currentRayLocation).object;
 				let normal = getSurfaceNormal(currentRayLocation);
 				let brightness = p5.Vector.dot(normal, lightVector);
-				noStroke();
-				let r = chosenSphere.colour[0];
-				let g = chosenSphere.colour[1];
-				let b = chosenSphere.colour[2];
-				fill((normal.x*0.5 +0.5) * 255, (normal.y*0.5 +0.5) * 255, (normal.z*0.5 +0.5) * 255)
-				// fill(max(0.2 * r, brightness * r), max(0.2 * g, brightness * g), max(0.2 * b, brightness * b))
+				let minimumBrightness = 0.2;
+				let r = closestObject.colour[0];
+				let g = closestObject.colour[1];
+				let b = closestObject.colour[2];
+
+				fill((normal.x * 0.5 + 0.5) * 255, (normal.y * 0.5 + 0.5) * 255, (normal.z * 0.5 + 0.5) * 255)
+				// fill(max(minimumBrightness * r, brightness * r), max(minimumBrightness * g, brightness * g), max(minimumBrightness * b, brightness * b))
 				square(x, y, fragmentSize);
 			}
 		}
@@ -159,20 +157,12 @@ function movePlayer() {
 	}
 
 	if (keyIsDown(LEFT_ARROW)) {
-		playerRotationY -= 1;
+		playerRotationY -= 3;
 	}
 
 	if (keyIsDown(RIGHT_ARROW)) {
-		playerRotationY += 1;
+		playerRotationY += 3;
 	}
-
-	// if (keyIsDown(UP_ARROW)) {
-	// 	playerRotationX -= 200
-	// }
-
-	// if (keyIsDown(DOWN_ARROW)) {
-	// 	playerRotationX += 200
-	// }
 }
 
 // Samples the surface distance at 4 points: pos, pos with a small x offset, pos with a small y offset and pos with a small z offset and uses the distance differences to estimate the surface normal.
@@ -205,13 +195,13 @@ function getSurfaceDistance(pos) {
 				smallestObjectDistance = distance;
 				closestObject = object;
 			};
-		}
-	}
+		};
+	};
 	return {
 		distance: smallestObjectDistance,
 		object: closestObject
-	}
-}
+	};
+};
 
 // This is hardcoded for 1x3 and 3x3 matrix multiplication to be faster.
 const multiplyMatrices = (a, b) => {
