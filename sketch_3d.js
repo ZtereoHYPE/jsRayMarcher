@@ -67,7 +67,7 @@ let hyperParameters = {
 function setup() {
 	playerLocation = createVector(0, 0, -100);
 	generateSpheres()
-	frameRate(60);
+	frameRate(30);
 	canvas = createCanvas(400, 400);
 	background(10);
 }
@@ -75,7 +75,6 @@ function setup() {
 function draw() {
 	let lightVector = createVector(10 * Math.cos(frameCount / 10), -20, 10 * Math.sin(frameCount / 10))
 	lightVector.normalize()
-	movePlayer()
 	background(10);
 	fill("white")
 	noStroke();
@@ -86,7 +85,7 @@ function draw() {
 		[0, 1, 0],
 		[Math.sin(angle), 0, Math.cos(angle)]
 	]
-
+	movePlayer()
 	// Run this for each fragment
 	for (let y = 1; y <= canvas.height; y += fragmentSize) {
 		for (let x = 1; x <= canvas.width; x += fragmentSize) {
@@ -138,15 +137,36 @@ function draw() {
 }
 
 function movePlayer() {
-	// up
+	// forward
 	if (keyIsDown(87)) {
-		playerLocation.z += 2
+		let angle = radians(playerRotationY);
+		let yRotationMatrix = [
+			[Math.cos(angle), 0, -Math.sin(angle)],
+			[0, 1, 0],
+			[Math.sin(angle), 0, Math.cos(angle)]
+		]
+		let directionVectorMatrix = [
+			[0, 0, 1]
+		]
+		let rotatedDirectionVector = multiplyMatrices(directionVectorMatrix, yRotationMatrix);
+		playerLocation.add(createVector(rotatedDirectionVector[0][0], rotatedDirectionVector[0][1], rotatedDirectionVector[0][2]).normalize().mult(2))
+		// playerLocation.z += 2
 	}
-	// down
+	// backwards
 	if (keyIsDown(83)) {
-		playerLocation.z -= 2
+		let angle = radians(playerRotationY);
+		let yRotationMatrix = [
+			[Math.cos(angle), 0, -Math.sin(angle)],
+			[0, 1, 0],
+			[Math.sin(angle), 0, Math.cos(angle)]
+		]
+		let directionVectorMatrix = [
+			[0, 0, -1]
+		]
+		let rotatedDirectionVector = multiplyMatrices(directionVectorMatrix, yRotationMatrix);
+		playerLocation.add(createVector(rotatedDirectionVector[0][0], rotatedDirectionVector[0][1], rotatedDirectionVector[0][2]).normalize().mult(2))
+		// playerLocation.z -= 2
 	}
-
 	if (keyIsDown(69)) {
 		playerLocation.y -= 2
 	}
@@ -156,11 +176,34 @@ function movePlayer() {
 	}
 	// left
 	if (keyIsDown(65)) {
-		playerLocation.x -= 2
+		let angle = radians(playerRotationY);
+		let yRotationMatrix = [
+			[Math.cos(angle), 0, -Math.sin(angle)],
+			[0, 1, 0],
+			[Math.sin(angle), 0, Math.cos(angle)]
+		]
+		let directionVectorMatrix = [
+			[-1, 0, 0]
+		]
+		let rotatedDirectionVector = multiplyMatrices(directionVectorMatrix, yRotationMatrix);
+		playerLocation.add(createVector(rotatedDirectionVector[0][0], rotatedDirectionVector[0][1], rotatedDirectionVector[0][2]).normalize().mult(2))
+		// playerLocation.x -= 2
 	}
 	// right
 	if (keyIsDown(68)) {
-		playerLocation.x += 2
+		let angle = radians(playerRotationY);
+		let yRotationMatrix = [
+			[Math.cos(angle), 0, -Math.sin(angle)],
+			[0, 1, 0],
+			[Math.sin(angle), 0, Math.cos(angle)]
+		]
+		let directionVectorMatrix = [
+			[1, 0, 0]
+		]
+		let rotatedDirectionVector = multiplyMatrices(directionVectorMatrix, yRotationMatrix);
+		playerLocation.add(createVector(rotatedDirectionVector[0][0], rotatedDirectionVector[0][1], rotatedDirectionVector[0][2]).normalize().mult(2))
+
+		// playerLocation.x += 2
 	}
 
 	if (keyIsDown(LEFT_ARROW)) {
@@ -171,7 +214,6 @@ function movePlayer() {
 		playerRotationY += 3;
 	}
 }
-
 // Samples the surface distance at 4 points: pos, pos with a small x offset, pos with a small y offset and pos with a small z offset and uses the distance differences to estimate the surface normal.
 function getSurfaceNormal(pos) {
 	const epsilon = hyperParameters.normalEpsilon;
