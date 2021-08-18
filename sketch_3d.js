@@ -16,20 +16,20 @@ let generatorArray = [
 		r: 30,
 		colour: [100, 40, 200]
 	},
-	{
-		type: "plane",
-		normal: {
-			x: 0,
-			y: 1,
-			z: 0
-		},
-		point: {
-			x: 0,
-			y: 100,
-			x: 0
-		},
-		colour: [255, 200, 127]
-	},
+	// {
+	// 	type: "plane",
+	// 	normal: {
+	// 		x: 0,
+	// 		y: 1,
+	// 		z: 0
+	// 	},
+	// 	point: {
+	// 		x: 0,
+	// 		y: 100,
+	// 		x: 0
+	// 	},
+	// 	colour: [255, 200, 127]
+	// },
 ]
 let sphereArray = [];
 function generateSpheres() {
@@ -57,11 +57,13 @@ let canvas;
 let fragmentSize = 6;
 let playerLocation;
 let playerRotationY = 0;
+
 let hyperParameters = {
 	nearnessThreshold: 0.1,
 	maximumDistance: 1000,
-	maximumLoopsPerRay: 150,
+	maximumLoopsPerRay: Infinity,
 	normalEpsilon: 0.0000000001,
+	fadeDistanfeFromEdge: 200,
 }
 
 function setup() {
@@ -93,9 +95,11 @@ function draw() {
 			let u = x / (canvas.width / 2) - 1;
 			let v = y / (canvas.height / 2) - 1;
 
-			let closestObjectDistance = Infinity;
+			let closestObjectDistance;
 			let currentRayLocation = playerLocation.copy()
 			let maxCircles = 0;
+			let closestObject;
+			let closestObjectEverDistance = Infinity;
 
 			let uvVector = createVector(u, v, 1).normalize();
 			let rayVectorMatrix = [
@@ -106,30 +110,28 @@ function draw() {
 			let correctVector = createVector(matriceVector[0][0], matriceVector[0][1], matriceVector[0][2]);
 
 			// Loop until we find the closest object, we get too far, or it's taking too long
-			while (closestObjectDistance > hyperParameters.nearnessThreshold && currentRayLocation.dist(playerLocation) < hyperParameters.maximumDistance && maxCircles < hyperParameters.maximumLoopsPerRay) {
+			do {
 				// Get the closest object distance
-				closestObjectDistance = getSurfaceDistance(currentRayLocation).distance;
+				objectData = getSurfaceDistance(currentRayLocation);
+				closestObjectDistance = objectData.distance;
+				closestObject = objectData.object;
+				if (closestObjectDistance < closestObjectEverDistance) {
+					closestObjectEverDistance = closestObjectDistance;
+				}
 
 				// Advance the ray of the rotated ray
 				currentRayLocation.x += correctVector.x * closestObjectDistance;
 				currentRayLocation.y += correctVector.y * closestObjectDistance;
 				currentRayLocation.z += correctVector.z * closestObjectDistance;
 				maxCircles++
-			}
+			} while (closestObjectDistance > hyperParameters.nearnessThreshold && currentRayLocation.dist(playerLocation) < hyperParameters.maximumDistance && maxCircles < hyperParameters.maximumLoopsPerRay)
 
-			if (closestObjectDistance < hyperParameters.nearnessThreshold) {
-				let closestObject = getSurfaceDistance(currentRayLocation).object;
-				let normal = getSurfaceNormal(currentRayLocation);
-				let brightness = p5.Vector.dot(normal, lightVector);
-				let minimumBrightness = 0.2;
-				let r = closestObject.colour[0];
-				let g = closestObject.colour[1];
-				let b = closestObject.colour[2];
-
-				fill((normal.x * 0.5 + 0.5) * 255, (normal.y * 0.5 + 0.5) * 255, (normal.z * 0.5 + 0.5) * 255)
-				// fill(max(minimumBrightness * r, brightness * r), max(minimumBrightness * g, brightness * g), max(minimumBrightness * b, brightness * b))
-				square(x, y, fragmentSize);
-			}
+			// This is basically the fragment shader
+			// if (closestObjectDistance < hyperParameters.nearnessThreshold) {
+			let fragmentColour = normalFragmentShader(currentRayLocation, closestObjectEverDistance, lightVector, closestObject);
+			fill(fragmentColour.r, fragmentColour.g, fragmentColour.b);
+			square(x, y, fragmentSize);
+			// }
 		}
 	}
 	fill("white");
@@ -150,7 +152,6 @@ function movePlayer() {
 		]
 		let rotatedDirectionVector = multiplyMatrices(directionVectorMatrix, yRotationMatrix);
 		playerLocation.add(createVector(rotatedDirectionVector[0][0], rotatedDirectionVector[0][1], rotatedDirectionVector[0][2]).normalize().mult(2))
-		// playerLocation.z += 2
 	}
 	// backwards
 	if (keyIsDown(83)) {
@@ -165,7 +166,6 @@ function movePlayer() {
 		]
 		let rotatedDirectionVector = multiplyMatrices(directionVectorMatrix, yRotationMatrix);
 		playerLocation.add(createVector(rotatedDirectionVector[0][0], rotatedDirectionVector[0][1], rotatedDirectionVector[0][2]).normalize().mult(2))
-		// playerLocation.z -= 2
 	}
 	if (keyIsDown(69)) {
 		playerLocation.y -= 2
@@ -187,7 +187,6 @@ function movePlayer() {
 		]
 		let rotatedDirectionVector = multiplyMatrices(directionVectorMatrix, yRotationMatrix);
 		playerLocation.add(createVector(rotatedDirectionVector[0][0], rotatedDirectionVector[0][1], rotatedDirectionVector[0][2]).normalize().mult(2))
-		// playerLocation.x -= 2
 	}
 	// right
 	if (keyIsDown(68)) {
@@ -202,8 +201,6 @@ function movePlayer() {
 		]
 		let rotatedDirectionVector = multiplyMatrices(directionVectorMatrix, yRotationMatrix);
 		playerLocation.add(createVector(rotatedDirectionVector[0][0], rotatedDirectionVector[0][1], rotatedDirectionVector[0][2]).normalize().mult(2))
-
-		// playerLocation.x += 2
 	}
 
 	if (keyIsDown(LEFT_ARROW)) {
@@ -265,4 +262,52 @@ const multiplyMatrices = (a, b) => {
 		}
 	}
 	return product;
+}
+
+function normalFragmentShader(currentRayLocation) {
+	let normal = getSurfaceNormal(currentRayLocation);
+
+	gl_FragColor = {
+		r: (normal.x * 0.5 + 0.5) * 255,
+		g: (normal.y * 0.5 + 0.5) * 255,
+		b: (normal.z * 0.5 + 0.5) * 255
+	}
+	return gl_FragColor;
+}
+
+function colourFragmentShader(currentRayLocation, closestObjectEverDistance, lightVector, closestObject) {
+	// Fog shader
+	let darkFadeFactor;
+	let playerDistanceFromObject = currentRayLocation.dist(playerLocation);
+	let fogStart = hyperParameters.maximumDistance - hyperParameters.fadeDistanfeFromEdge;
+	if (playerDistanceFromObject >= fogStart) {
+		darkFadeFactor = (hyperParameters.maximumDistance - playerDistanceFromObject) / hyperParameters.fadeDistanfeFromEdge;
+	} else {
+		darkFadeFactor = 1;
+	}
+
+	// Coloured shader (with fog)
+	let normal = getSurfaceNormal(currentRayLocation);
+	let brightness = p5.Vector.dot(normal, lightVector);
+	let minimumBrightness = 0.2;
+	let r = closestObject.colour[0];
+	let g = closestObject.colour[1];
+	let b = closestObject.colour[2];
+
+	gl_FragColor = {
+		r: max(minimumBrightness * r, brightness * r) * darkFadeFactor,
+		g: max(minimumBrightness * g, brightness * g) * darkFadeFactor,
+		b: max(minimumBrightness * b, brightness * b) * darkFadeFactor
+	}
+
+	return gl_FragColor;
+}
+
+function glowPlanetsShader(currentRayLocation, closestObjectEverDistance, lightVector, closestObject) {
+	gl_FragColor = {
+		r: 250 / (Math.sqrt(closestObjectEverDistance)**1.4),
+		g: 250 / (closestObjectEverDistance),
+		b: 60 / (closestObjectEverDistance ** 2)
+	}
+	return gl_FragColor;
 }
