@@ -33,6 +33,7 @@ function cycleCounterShader(currentRayLocation, closestObjectEverDistance, close
 }
 
 function colourFragmentShader(currentRayLocation, closestObjectEverDistance, closestObjectDistance, lightVector, closestObject) {
+    if (closestObjectDistance > 0.1) return;
 	// Fog shader
 	let darkFadeFactor;
 	let playerDistanceFromObject = currentRayLocation.dist(playerLocation);

@@ -67,7 +67,7 @@ function generateSpheres() {
 				point: createVector(object.point.x, object.point.y, object.point.z),
 				colour: object.colour,
 				type: object.type
-			})
-		}
-	}
-}
+			});
+		};
+	};
+};
