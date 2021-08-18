@@ -52,13 +52,17 @@ function generateSpheres() {
 	}
 }
 
+
 let canvas;
-let vectorArray = [];
-let fragmentSize = 3;
+let fragmentSize = 6;
 let playerLocation;
 let playerRotationY = 0;
-let playerRotationX = 0;
-let lightVector;
+let hyperParameters = {
+	nearnessThreshold: 0.1,
+	maximumDistance: 1000,
+	maximumLoopsPerRay: 150,
+	normalEpsilon: 0.0000000001,
+}
 
 function setup() {
 	playerLocation = createVector(0, 0, -100);
@@ -69,12 +73,20 @@ function setup() {
 }
 
 function draw() {
-	lightVector = createVector(10 * Math.cos(frameCount / 10), -20, 10 * Math.sin(frameCount / 10))
+	let lightVector = createVector(10 * Math.cos(frameCount / 10), -20, 10 * Math.sin(frameCount / 10))
 	lightVector.normalize()
 	movePlayer()
 	background(10);
 	fill("white")
 	noStroke();
+
+	let angle = radians(playerRotationY);
+	let yRotationMatrix = [
+		[Math.cos(angle), 0, -Math.sin(angle)],
+		[0, 1, 0],
+		[Math.sin(angle), 0, Math.cos(angle)]
+	]
+
 	// Run this for each fragment
 	for (let y = 1; y <= canvas.height; y += fragmentSize) {
 		for (let x = 1; x <= canvas.width; x += fragmentSize) {
@@ -86,21 +98,16 @@ function draw() {
 			let currentRayLocation = playerLocation.copy()
 			let maxCircles = 0;
 
-			let angle = radians(playerRotationY);
 			let uvVector = createVector(u, v, 1).normalize();
 			let rayVectorMatrix = [
 				[uvVector.x, uvVector.y, uvVector.z]
 			]
-			let yRotationMatrix = [
-				[Math.cos(angle), 0, -Math.sin(angle)],
-				[0, 1, 0],
-				[Math.sin(angle), 0, Math.cos(angle)]
-			]
+
 			let matriceVector = multiplyMatrices(rayVectorMatrix, yRotationMatrix);
 			let correctVector = createVector(matriceVector[0][0], matriceVector[0][1], matriceVector[0][2]);
 
 			// Loop until we find the closest object, we get too far, or it's taking too long
-			while (closestObjectDistance > 0.1 && currentRayLocation.dist(playerLocation) < 500 && maxCircles < 150) {
+			while (closestObjectDistance > hyperParameters.nearnessThreshold && currentRayLocation.dist(playerLocation) < hyperParameters.maximumDistance && maxCircles < hyperParameters.maximumLoopsPerRay) {
 				// Get the closest object distance
 				closestObjectDistance = getSurfaceDistance(currentRayLocation).distance;
 
@@ -111,7 +118,7 @@ function draw() {
 				maxCircles++
 			}
 
-			if (closestObjectDistance < 0.1) {
+			if (closestObjectDistance < hyperParameters.nearnessThreshold) {
 				let closestObject = getSurfaceDistance(currentRayLocation).object;
 				let normal = getSurfaceNormal(currentRayLocation);
 				let brightness = p5.Vector.dot(normal, lightVector);
@@ -126,8 +133,8 @@ function draw() {
 			}
 		}
 	}
-	fill("white")
-	text(frameRate(), 20, 20)
+	fill("white");
+	text(frameRate(), 20, 20);
 }
 
 function movePlayer() {
@@ -167,7 +174,7 @@ function movePlayer() {
 
 // Samples the surface distance at 4 points: pos, pos with a small x offset, pos with a small y offset and pos with a small z offset and uses the distance differences to estimate the surface normal.
 function getSurfaceNormal(pos) {
-	const epsilon = 0.0000000001;
+	const epsilon = hyperParameters.normalEpsilon;
 	const centerDistance = getSurfaceDistance(pos).distance;
 	const xDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(epsilon, 0, 0))).distance;
 	const yDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, epsilon, 0))).distance;
