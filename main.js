@@ -12,7 +12,7 @@ let generatorArray = [
 		x: 50,
 		y: 0,
 		z: 80,
-		r: 30,
+		r: 20,
 		colour: [100, 40, 200]
 	},
 	// {
@@ -40,7 +40,7 @@ let playerRotationY = 0;
 let hyperParameters = {
 	nearnessThreshold: 0.1,
 	maximumDistance: 1000,
-	maximumLoopsPerRay: Infinity,
+	maximumLoopsPerRay: 15,
 	normalEpsilon: 0.0000000001,
 	fadeDistanfeFromEdge: 200,
 }
@@ -48,7 +48,7 @@ let hyperParameters = {
 function setup() {
 	playerLocation = createVector(0, 0, -100);
 	generateSpheres()
-	frameRate(30);
+	frameRate(50);
 	canvas = createCanvas(400, 400);
 	background(10);
 }
@@ -57,7 +57,6 @@ function draw() {
 	let lightVector = createVector(10 * Math.cos(frameCount / 10), -20, 10 * Math.sin(frameCount / 10))
 	lightVector.normalize()
 	background(10);
-	fill("white")
 	noStroke();
 
 	let angle = radians(playerRotationY);
@@ -103,14 +102,15 @@ function draw() {
 				currentRayLocation.y += correctVector.y * closestObjectDistance;
 				currentRayLocation.z += correctVector.z * closestObjectDistance;
 				maxCircles++
-			} while (closestObjectDistance > hyperParameters.nearnessThreshold && currentRayLocation.dist(playerLocation) < hyperParameters.maximumDistance && maxCircles < hyperParameters.maximumLoopsPerRay)
+			} while (closestObjectDistance > hyperParameters.nearnessThreshold && currentRayLocation.dist(playerLocation) < hyperParameters.maximumDistance && maxCircles < hyperParameters.maximumLoopsPerRay);
 
 			// This is basically the fragment shader
-			// if (closestObjectDistance < hyperParameters.nearnessThreshold) {
-			let fragmentColour = normalFragmentShader(currentRayLocation, closestObjectEverDistance, closestObjectDistance, lightVector, closestObject);
-			fill(fragmentColour.r, fragmentColour.g, fragmentColour.b);
-			square(x, y, fragmentSize);
-			// }
+			// if (closestObjectDistance < hyperParameters.nearnessThreshold) {}
+			let fragmentColour = cycleCounterShader(currentRayLocation, closestObjectEverDistance, closestObjectDistance, lightVector, closestObject, maxCircles);
+			if (fragmentColour) {
+				fill(fragmentColour.r, fragmentColour.g, fragmentColour.b);
+				square(x, y, fragmentSize);
+			}
 		}
 	}
 	fill("white");
