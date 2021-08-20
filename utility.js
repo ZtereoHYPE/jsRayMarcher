@@ -10,11 +10,11 @@ function getSurfaceNormal(pos) {
 	return normal;
 }
 
-function getSurfaceDistance(pos) {
+function getSurfaceDistance(pos, objectArray) {
 	let smallestObjectDistance = Infinity;
 	let closestObject = null;
 
-	for (object of sphereArray) {
+	for (object of objectArray) {
 		if (object.type === "sphere") {
 			let distance = pos.dist(object.vect) - object.r
 			if (distance < smallestObjectDistance) {
@@ -40,9 +40,7 @@ function getSurfaceDistance(pos) {
 const multiplyMatrices = (a, b) => {
 	let productRow = Array.apply(null, new Array(3)).map(Number.prototype.valueOf, 0);
 	let product = new Array(1);
-	for (let p = 0; p < 1; p++) {
-		product[p] = productRow.slice();
-	}
+	product[p] = productRow.slice();
 	for (let j = 0; j < 3; j++) {
 		for (let k = 0; k < 3; k++) {
 			product[0][j] += a[0][k] * b[k][j];
