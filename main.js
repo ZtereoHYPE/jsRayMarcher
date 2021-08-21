@@ -15,20 +15,20 @@ let generatorArray = [
 		r: 35,
 		colour: [100, 40, 200]
 	},
-	// {
-	// 	type: "plane",
-	// 	normal: {
-	// 		x: 0,
-	// 		y: 1,
-	// 		z: 0
-	// 	},
-	// 	point: {
-	// 		x: 0,
-	// 		y: 100,
-	// 		x: 0
-	// 	},
-	// 	colour: [255, 200, 127]
-	// },
+	{
+		type: "plane",
+		normal: {
+			x: 0,
+			y: 1,
+			z: 0
+		},
+		point: {
+			x: 0,
+			y: 100,
+			x: 0
+		},
+		colour: [255, 200, 127]
+	},
 ]
 
 let sphereArray = [];
@@ -36,11 +36,12 @@ let canvas;
 let fragmentSize = 6;
 let playerLocation;
 let playerRotationY = 0;
+let lightVector;
 
 let hyperParameters = {
 	nearnessThreshold: 0.1,
 	maximumDistance: 1000,
-	maximumLoopsPerRay: 150,
+	maximumLoopsPerRay: 500,
 	normalEpsilon: 0.0000001,
 	fadeDistanfeFromEdge: 300,
 }
@@ -48,15 +49,17 @@ let hyperParameters = {
 function setup() {
 	playerLocation = createVector(0, 0, -100);
 	generateSpheres()
-	frameRate(30);
+	frameRate(200);
 	canvas = createCanvas(400, 400);
 	background(10);
+	lightVector = createVector(10 * Math.cos(frameCount / 10), -20, 10 * Math.sin(frameCount / 10))
+	lightVector.normalize()
 }
 
 function draw() {
-	let lightVector = createVector(10 * Math.cos(frameCount / 10), -20, 10 * Math.sin(frameCount / 10))
-	lightVector.normalize()
-	background(10);
+
+	// lightVector.normalize()
+	background(0, 0, 0);
 	noStroke();
 
 	let angle = radians(playerRotationY);
@@ -90,7 +93,7 @@ function draw() {
 			// Loop until we find the closest object, we get too far, or it's taking too long
 			do {
 				// Get the closest object distance
-				objectData = getSurfaceDistance(currentRayLocation);
+				objectData = getSurfaceDistance(currentRayLocation, sphereArray);
 				closestObjectDistance = objectData.distance;
 				closestObject = objectData.object;
 				if (closestObjectDistance < closestObjectEverDistance) {
@@ -104,11 +107,31 @@ function draw() {
 				maxCircles++
 			} while (closestObjectDistance > hyperParameters.nearnessThreshold && currentRayLocation.dist(playerLocation) < hyperParameters.maximumDistance && maxCircles < hyperParameters.maximumLoopsPerRay);
 
+			// Render shadows
+			let maxShadewCircles = 0;
+			let shadewRayLocation = currentRayLocation.copy()
+			let shadewClosestObjectDistance = closestObjectDistance;
+			let isShadewPixel = false;
+			if (closestObjectDistance < hyperParameters.nearnessThreshold) {
+				do {
+					shadewClosestObjectDistance = getSurfaceDistance(shadewRayLocation, sphereArray.filter((object) => object != closestObject)).distance;
+					shadewRayLocation.x += lightVector.x * shadewClosestObjectDistance;
+					shadewRayLocation.y += lightVector.y * shadewClosestObjectDistance;
+					shadewRayLocation.z += lightVector.z * shadewClosestObjectDistance;
+					maxShadewCircles++
+				} while (shadewClosestObjectDistance > 0.01 && shadewRayLocation.dist(playerLocation) < hyperParameters.maximumDistance && maxShadewCircles < hyperParameters.maximumLoopsPerRay);
+
+				if (shadewClosestObjectDistance < 0.01) {
+					isShadewPixel = true;
+					// console.log("detected shadow")
+				}
+			}
+
 			// This is basically the fragment shader
-			let fragmentColour = glowPlanetsShader(currentRayLocation, closestObjectEverDistance, closestObjectDistance, lightVector, closestObject, maxCircles);
+			let fragmentColour = normalShadowShader(currentRayLocation, closestObjectEverDistance, closestObjectDistance, lightVector, closestObject, maxCircles, isShadewPixel);
 			if (fragmentColour) {
 				fill(fragmentColour.r, fragmentColour.g, fragmentColour.b);
-				square(x, y, fragmentSize);
+				square(x - 1, y - 1, fragmentSize);
 			}
 		}
 	}

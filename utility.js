@@ -1,10 +1,10 @@
 // Samples the surface distance at 4 points: pos, pos with a small x offset, pos with a small y offset and pos with a small z offset and uses the distance differences to estimate the surface normal.
-function getSurfaceNormal(pos) {
+function getSurfaceNormal(pos, objectArray) {
 	const epsilon = hyperParameters.normalEpsilon;
-	const centerDistance = getSurfaceDistance(pos).distance;
-	const xDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(epsilon, 0, 0))).distance;
-	const yDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, epsilon, 0))).distance;
-	const zDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, 0, epsilon))).distance;
+	const centerDistance = getSurfaceDistance(pos, objectArray).distance;
+	const xDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(epsilon, 0, 0)), objectArray).distance;
+	const yDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, epsilon, 0)), objectArray).distance;
+	const zDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, 0, epsilon)), objectArray).distance;
 	let normal = createVector(xDistance - centerDistance, yDistance - centerDistance, zDistance - centerDistance);
 	normal.normalize();
 	return normal;
@@ -40,7 +40,7 @@ function getSurfaceDistance(pos, objectArray) {
 const multiplyMatrices = (a, b) => {
 	let productRow = Array.apply(null, new Array(3)).map(Number.prototype.valueOf, 0);
 	let product = new Array(1);
-	product[p] = productRow.slice();
+	product[0] = productRow.slice();
 	for (let j = 0; j < 3; j++) {
 		for (let k = 0; k < 3; k++) {
 			product[0][j] += a[0][k] * b[k][j];
