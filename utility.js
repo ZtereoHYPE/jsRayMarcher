@@ -1,11 +1,11 @@
 // Samples the surface distance at 4 points: pos, pos with a small x offset, pos with a small y offset and pos with a small z offset and uses the distance differences to estimate the surface normal.
 function getSurfaceNormal(pos, objectArray) {
 	const epsilon = hyperParameters.normalEpsilon;
-	const centerDistance = getSurfaceDistance(pos, objectArray).distance;
-	const xDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(epsilon, 0, 0)), objectArray).distance;
-	const yDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, epsilon, 0)), objectArray).distance;
-	const zDistance = getSurfaceDistance(p5.Vector.add(pos, createVector(0, 0, epsilon)), objectArray).distance;
-	let normal = createVector(xDistance - centerDistance, yDistance - centerDistance, zDistance - centerDistance);
+	const surface = getSurfaceDistance(pos, objectArray);
+	const xDistance = getObjectDistance(p5.Vector.add(pos, createVector(epsilon, 0, 0)), surface.object);
+	const yDistance = getObjectDistance(p5.Vector.add(pos, createVector(0, epsilon, 0)), surface.object);
+	const zDistance = getObjectDistance(p5.Vector.add(pos, createVector(0, 0, epsilon)), surface.object);
+	let normal = createVector(xDistance - surface.distance, yDistance - surface.distance, zDistance - surface.distance);
 	normal.normalize();
 	return normal;
 }
@@ -34,6 +34,11 @@ function getSurfaceDistance(pos, objectArray) {
 		distance: smallestObjectDistance,
 		object: closestObject
 	};
+};
+
+function getObjectDistance(pos, object) {
+	if (object.type === "sphere") return pos.dist(object.vect) - object.r;
+	else if (object.type === "plane") return Math.abs(p5.Vector.dot(object.normal, p5.Vector.sub(pos, object.point)));
 };
 
 // This is hardcoded for 1x3 times 3x3 matrix multiplication to be faster.
