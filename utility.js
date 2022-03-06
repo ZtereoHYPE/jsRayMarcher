@@ -36,16 +36,14 @@ function getSurfaceDistance(pos, objectArray) {
 	};
 };
 
-// This is hardcoded for 1x3 and 3x3 matrix multiplication to be faster.
+// This is hardcoded for 1x3 times 3x3 matrix multiplication to be faster.
 const multiplyMatrices = (a, b) => {
-	let productRow = Array.apply(null, new Array(3)).map(Number.prototype.valueOf, 0);
-	let product = new Array(1);
-	product[0] = productRow.slice();
-	for (let j = 0; j < 3; j++) {
-		for (let k = 0; k < 3; k++) {
-			product[0][j] += a[0][k] * b[k][j];
-		}
-	}
+	let product = [[]];
+
+	product[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0];
+	product[0][1] = a[0][0] * b[0][1] + a[0][1] * b[1][1] + a[0][2] * b[2][1];
+	product[0][2] = a[0][0] * b[0][2] + a[0][1] * b[1][2] + a[0][2] * b[2][2];
+
 	return product;
 }
 

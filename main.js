@@ -15,6 +15,16 @@ let generatorArray = [
 		r: 35,
 		colour: [100, 40, 200]
 	},
+
+	//centered sphere
+	{
+		type: "sphere",
+		x: 50,
+		y: 50,
+		z: 50,
+		r: 30,
+		colour: [200, 10, 200]
+	},
 	{
 		type: "plane",
 		normal: {
@@ -33,23 +43,23 @@ let generatorArray = [
 
 let sphereArray = [];
 let canvas;
-let fragmentSize = 6;
+let fragmentSize = 3;
 let playerLocation;
 let playerRotationY = 0;
 let lightVector;
 
 let hyperParameters = {
 	nearnessThreshold: 0.1,
-	maximumDistance: 1000,
-	maximumLoopsPerRay: 500,
-	normalEpsilon: 0.0000001,
+	maximumDistance: 500,
+	maximumLoopsPerRay: 100,
+	normalEpsilon: 0.000001,
 	fadeDistanfeFromEdge: 300,
 }
 
 function setup() {
 	playerLocation = createVector(0, 0, -100);
 	generateSpheres()
-	frameRate(200);
+	frameRate(60);
 	canvas = createCanvas(400, 400);
 	background(10);
 	lightVector = createVector(10 * Math.cos(frameCount / 10), -20, 10 * Math.sin(frameCount / 10))
@@ -57,17 +67,19 @@ function setup() {
 }
 
 function draw() {
-
-	// lightVector.normalize()
+	lightVector = createVector(10 * Math.cos(frameCount / 10), -20, 10 * Math.sin(frameCount / 10))
+	lightVector.normalize()
 	background(0, 0, 0);
 	noStroke();
 
-	let angle = radians(playerRotationY);
+	const cos = Math.cos(playerRotationY);
+	const sin = Math.sin(playerRotationY);
 	let yRotationMatrix = [
-		[Math.cos(angle), 0, -Math.sin(angle)],
+		[cos, 0, -sin],
 		[0, 1, 0],
-		[Math.sin(angle), 0, Math.cos(angle)]
+		[sin, 0, cos]
 	]
+
 	movePlayer()
 	// Run this for each fragment
 	for (let y = 1; y <= canvas.height; y += fragmentSize) {
@@ -93,7 +105,7 @@ function draw() {
 			// Loop until we find the closest object, we get too far, or it's taking too long
 			do {
 				// Get the closest object distance
-				objectData = getSurfaceDistance(currentRayLocation, sphereArray);
+				let objectData = getSurfaceDistance(currentRayLocation, sphereArray);
 				closestObjectDistance = objectData.distance;
 				closestObject = objectData.object;
 				if (closestObjectDistance < closestObjectEverDistance) {
@@ -123,7 +135,6 @@ function draw() {
 
 				if (shadewClosestObjectDistance < 0.01) {
 					isShadewPixel = true;
-					// console.log("detected shadow")
 				}
 			}
 
