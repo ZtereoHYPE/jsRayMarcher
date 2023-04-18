@@ -2,9 +2,9 @@
 function getSurfaceNormal(pos, objectArray) {
 	const epsilon = hyperParameters.normalEpsilon;
 	const surface = getSurfaceDistance(pos, objectArray);
-	const xDistance = getObjectDistance(p5.Vector.add(pos, createVector(epsilon, 0, 0)), surface.object);
-	const yDistance = getObjectDistance(p5.Vector.add(pos, createVector(0, epsilon, 0)), surface.object);
-	const zDistance = getObjectDistance(p5.Vector.add(pos, createVector(0, 0, epsilon)), surface.object);
+	const xDistance = getObjectDistance(createVector(epsilon + pos.x, pos.y, pos.z), surface.object);
+	const yDistance = getObjectDistance(createVector(pos.x, epsilon + pos.y, pos.z), surface.object);
+	const zDistance = getObjectDistance(createVector(pos.x, pos.y, epsilon + pos.z), surface.object);
 	let normal = createVector(xDistance - surface.distance, yDistance - surface.distance, zDistance - surface.distance);
 	normal.normalize();
 	return normal;
@@ -16,14 +16,14 @@ function getSurfaceDistance(pos, objectArray) {
 
 	for (object of objectArray) {
 		if (object.type === "sphere") {
-			let distance = pos.dist(object.vect) - object.r
+			const distance = pos.dist(object.vect) - object.r
 			if (distance < smallestObjectDistance) {
 				smallestObjectDistance = distance;
 				closestObject = object;
 			};
 		}
 		else if (object.type === "plane") {
-			let distance = Math.abs(p5.Vector.dot(object.normal, p5.Vector.sub(pos, object.point)));
+			const distance = Math.abs(p5.Vector.dot(object.normal, p5.Vector.sub(pos, object.point)));
 			if (distance < smallestObjectDistance) {
 				smallestObjectDistance = distance;
 				closestObject = object;
@@ -43,11 +43,11 @@ function getObjectDistance(pos, object) {
 
 // This is hardcoded for 1x3 times 3x3 matrix multiplication to be faster.
 const multiplyMatrices = (a, b) => {
-	let product = [[]];
+	let product = [ [] ];
 
-	product[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0];
-	product[0][1] = a[0][0] * b[0][1] + a[0][1] * b[1][1] + a[0][2] * b[2][1];
-	product[0][2] = a[0][0] * b[0][2] + a[0][1] * b[1][2] + a[0][2] * b[2][2];
+	product[ 0 ][ 0 ] = a[ 0 ][ 0 ] * b[ 0 ][ 0 ] + a[ 0 ][ 1 ] * b[ 1 ][ 0 ] + a[ 0 ][ 2 ] * b[ 2 ][ 0 ];
+	product[ 0 ][ 1 ] = a[ 0 ][ 0 ] * b[ 0 ][ 1 ] + a[ 0 ][ 1 ] * b[ 1 ][ 1 ] + a[ 0 ][ 2 ] * b[ 2 ][ 1 ];
+	product[ 0 ][ 2 ] = a[ 0 ][ 0 ] * b[ 0 ][ 2 ] + a[ 0 ][ 1 ] * b[ 1 ][ 2 ] + a[ 0 ][ 2 ] * b[ 2 ][ 2 ];
 
 	return product;
 }
@@ -55,20 +55,22 @@ const multiplyMatrices = (a, b) => {
 // TODO: rewrite this bs based on reperak's work
 function generateSpheres() {
 	for (object of generatorArray) {
-		if (object.type === "sphere") {
-			sphereArray.push({
-				vect: createVector(object.x, object.y, object.z),
-				r: object.r,
-				colour: object.colour,
-				type: object.type
-			})
-		} else if (object.type === "plane") {
-			sphereArray.push({
-				normal: createVector(object.normal.x, object.normal.y, object.normal.z).normalize(),
-				point: createVector(object.point.x, object.point.y, object.point.z),
-				colour: object.colour,
-				type: object.type
-			});
+		switch (object.type) {
+			case "sphere":
+				sphereArray.push({
+					vect: createVector(object.x, object.y, object.z),
+					r: object.r,
+					colour: object.colour,
+					type: object.type
+				})
+				break;
+			case "plane":
+				sphereArray.push({
+					normal: createVector(object.normal.x, object.normal.y, object.normal.z).normalize(),
+					point: createVector(object.point.x, object.point.y, object.point.z),
+					colour: object.colour,
+					type: object.type
+				});
 		};
 	};
 };

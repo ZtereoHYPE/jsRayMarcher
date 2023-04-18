@@ -5,7 +5,7 @@ let generatorArray = [
 		y: 30,
 		z: 10,
 		r: 30,
-		colour: [250, 228, 220]
+		colour: [ 250, 228, 220 ]
 	},
 	{
 		type: "sphere",
@@ -13,7 +13,7 @@ let generatorArray = [
 		y: 0,
 		z: 80,
 		r: 35,
-		colour: [100, 40, 200]
+		colour: [ 100, 40, 200 ]
 	},
 
 	//centered sphere
@@ -23,7 +23,7 @@ let generatorArray = [
 		y: 50,
 		z: 50,
 		r: 30,
-		colour: [200, 10, 200]
+		colour: [ 200, 10, 200 ]
 	},
 	{
 		type: "plane",
@@ -37,7 +37,7 @@ let generatorArray = [
 			y: 100,
 			x: 0
 		},
-		colour: [255, 200, 127]
+		colour: [ 255, 200, 127 ]
 	},
 ]
 
@@ -57,9 +57,9 @@ let hyperParameters = {
 }
 
 function setup() {
-	playerLocation = createVector(0, 0, -100);
+	playerLocation = createVector(-3.1389419, 20.898234, -100.123124);
 	generateSpheres()
-	frameRate(60);
+	frameRate(120);
 	canvas = createCanvas(400, 400);
 	background(10);
 	lightVector = createVector(10 * Math.cos(frameCount / 10), -20, 10 * Math.sin(frameCount / 10))
@@ -75,9 +75,9 @@ function draw() {
 	const cos = Math.cos(playerRotationY);
 	const sin = Math.sin(playerRotationY);
 	let yRotationMatrix = [
-		[cos, 0, -sin],
-		[0, 1, 0],
-		[sin, 0, cos]
+		[ cos, 0, -sin ],
+		[ 0, 1, 0 ],
+		[ sin, 0, cos ]
 	]
 
 	movePlayer()
@@ -96,11 +96,11 @@ function draw() {
 
 			let uvVector = createVector(u, v, 1).normalize();
 			let rayVectorMatrix = [
-				[uvVector.x, uvVector.y, uvVector.z]
+				[ uvVector.x, uvVector.y, uvVector.z ]
 			]
 
 			let matriceVector = multiplyMatrices(rayVectorMatrix, yRotationMatrix);
-			let correctVector = createVector(matriceVector[0][0], matriceVector[0][1], matriceVector[0][2]);
+			let correctVector = createVector(matriceVector[ 0 ][ 0 ], matriceVector[ 0 ][ 1 ], matriceVector[ 0 ][ 2 ]);
 
 			// Loop until we find the closest object, we get too far, or it's taking too long
 			do {
